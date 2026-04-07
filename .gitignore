@@ -1,0 +1,12 @@
+# Data folders
+data/
+datasets/
+src/data/Annotations/
+src/data/*.zip
+
+# Compressed files
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
