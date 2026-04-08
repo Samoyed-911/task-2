@@ -13,3 +13,5 @@ outputs/train
 *.rar
 *.7z
 *.pt
+*.tif
+*.png
