@@ -2,10 +2,10 @@
 
 ---
 
-## Kết quả Dự đoán
-
+## Bộ dữ liệu DIOR với object ship
 ![Sample Predictions](outputs/predictions/sample_predictions.png)
 
+## Kết quả Dự đoán
 * Kết quả detect tàu từ file tif lấy từ bộ dữ liệu xview2018 (2555.tif)* [File Tiff](https://www.kaggle.com/datasets/hassanmojab/xview-dataset)
 
 * Kết qủa demo [Ảnh Demo](./outputs/predictions/predict_tiff.png)
