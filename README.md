@@ -6,7 +6,9 @@
 
 ![Sample Predictions](outputs/predictions/sample_predictions.png)
 
-*Hình ảnh minh họa kết quả detect tàu từ file tif lấy từ bộ dữ liệu xview2018 (2555.tif)* [Image Demo](https://www.kaggle.com/datasets/hassanmojab/xview-dataset)
+* Kết quả detect tàu từ file tif lấy từ bộ dữ liệu xview2018 (2555.tif)* [File Tiff](https://www.kaggle.com/datasets/hassanmojab/xview-dataset)
+
+* Kết qủa demo [Ảnh Demo](./outputs/predictions/predict_tiff.png)
 
 ---
 
@@ -59,7 +61,7 @@
 
 ```bash
 # Clone repository
-git clone <repository_url>
+git clone https://github.com/Samoyed-911/task-2.git
 cd task-2
 
 # Cài đặt dependencies
