@@ -1,547 +1,195 @@
-# Ship Detection from Satellite Imagery
-
-A complete pipeline for training, evaluating, and deploying ship detection models on satellite imagery using the SODA-A dataset and YOLOv8-OBB (Oriented Bounding Box).
-
-## Table of Contents
-
-1. [Overview](#overview)
-2. [Dataset Information](#dataset-information)
-3. [Installation](#installation)
-4. [Data Preprocessing](#data-preprocessing)
-5. [Training](#training)
-6. [Evaluation](#evaluation)
-7. [Prediction](#prediction)
-8. [Configuration Parameters](#configuration-parameters)
-9. [Output Formats](#output-formats)
-10. [Resolution Adaptation](#resolution-adaptation)
+# Nhận diện Tàu từ Ảnh Vệ tinh sử dụng YOLO11m-OBB (Dataset: DIOR-R)
 
 ---
 
-## Overview
+## Kết quả Dự đoán
 
-This project implements a ship detection system designed for satellite imagery, specifically targeting PlanetScope 3m resolution images. The system uses:
+![Sample Predictions](outputs/predictions/sample_predictions.png)
 
-- **Model**: YOLOv8-OBB (Oriented Bounding Box) for rotated object detection
-- **Framework**: PyTorch + Ultralytics
-- **Dataset**: SODA-A (Small Object Detection for Aerial images)
-
-### Key Features
-
-- Oriented bounding box detection (essential for rotated ships)
-- Sliding window processing for large GeoTIFF images
-- Geographic coordinate transformation (EPSG:4326)
-- GeoJSON output with OBB polygon geometries
-- Resolution adaptation between training data and inference data
+*Hình ảnh minh họa kết quả detect tàu từ file tif lấy từ bộ dữ liệu xview2018 (2555.tif)* [Image Demo](https://www.kaggle.com/datasets/hassanmojab/xview-dataset)
 
 ---
 
-## Dataset Information
+## Thống kê Phân tích Dữ liệu
 
-### SODA-A Dataset
+### Tổng quan Dataset DIOR-R
 
-The SODA-A (Small Object Detection for Aerial images) dataset is used for training:
+| Thông tin | Giá trị |
+|-----------|---------|
+| Tổng số ảnh | **23,463** |
+| Số class | **20** |
+| Kích thước ảnh | 800x800 pixels |
+| Độ phân giải mặt đất (GSD) | 0.5m - 30m |
 
-- **Source**: [Kaggle - SODA-A Dataset](https://www.kaggle.com/datasets/shubham6147/soda-a-small-object-detection-dataset-aerial)
-- **Format**: DOTA-style oriented bounding box annotations
-- **Resolution**: Approximately 0.5-1.0 meters per pixel (aerial imagery)
+### Phân bổ ảnh theo Tập dữ liệu
 
-### SODA-A Classes
+| Tập dữ liệu | Số ảnh | Số label |
+|-------------|--------|----------|
+| Train | 18,770 | 18,770 |
+| Val | 2,346 | 2,346 |
+| Test | 2,347 | 2,347 |
+| **Tổng** | **23,463** | **23,463** |
 
-| Class | Description |
-|-------|-------------|
-| airplane | Fixed-wing aircraft |
-| helicopter | Rotary-wing aircraft |
-| small-vehicle | Cars, motorcycles, etc. |
-| large-vehicle | Trucks, buses, etc. |
-| **ship** | Vessels (primary target) |
-| container | Shipping containers |
-| storage-tank | Storage facilities |
-| swimming-pool | Pools |
-| windmill | Wind turbines |
+### Thống kê Class Ship (class_id = 13)
 
-### Ship Class Statistics (varies by dataset version)
+| Tập dữ liệu | Số ảnh chứa ship | Số ảnh không chứa ship | Số object ship |
+|-------------|------------------|------------------------|----------------|
+| Train | 2,139 | 16,631 | 48,521 |
+| Val | 279 | 2,067 | 6,726 |
+| Test | 288 | 2,059 | 7,290 |
+| **Tổng** | **2,706** | **20,757** | **62,537** |
 
-For ship detection, the relevant class is `ship`. Typical statistics:
-- Ship objects vary in size from small boats (20m) to large vessels (400m)
-- Ships appear at various orientations (0-360 degrees)
-- Resolution affects apparent ship size in pixels
+> **Nhận xét**: Chỉ khoảng 11.5% tổng số ảnh chứa tàu, nhưng mỗi ảnh chứa tàu có trung bình ~23 object tàu.
 
-### Annotation Format
+### Danh sách 20 Class trong Dataset
 
-SODA-A uses DOTA format (oriented bounding boxes):
 ```
-x1 y1 x2 y2 x3 y3 x4 y4 class_name difficulty
+0: airplane        5: chimney              10: groundtrackfield   15: storagetank
+1: airport         6: dam                  11: harbor             16: tenniscourt
+2: baseballfield   7: Expressway-Service   12: overpass           17: trainstation
+3: basketballcourt 8: Expressway-toll      13: ship  <-- TARGET   18: vehicle
+4: bridge          9: golffield            14: stadium            19: windmill
 ```
 
-Where (x1,y1), (x2,y2), (x3,y3), (x4,y4) are the four corners of the rotated bounding box.
-
 ---
 
-## Installation
+## Hướng dẫn Sử dụng
 
-### Requirements
-
-- Python 3.8+
-- CUDA-capable GPU (recommended)
-- 16GB+ RAM
-- 50GB+ disk space for dataset and models
-
-### Setup
+### 1. Cài đặt
 
 ```bash
-# Clone or create project directory
-cd vega-star-task2
+# Clone repository
+git clone <repository_url>
+cd task-2
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# or
-venv\Scripts\activate  # Windows
-
-# Install dependencies
+# Cài đặt dependencies
 pip install -r requirements.txt
 ```
 
-### Dependencies
+### 2. Chạy Notebook
 
-Key packages:
-- `torch>=2.0.0` - Deep learning framework
-- `ultralytics>=8.1.0` - YOLOv8 implementation
-- `rasterio>=1.3.0` - GeoTIFF processing
-- `shapely>=2.0.0` - Geometric operations
-- `pyproj>=3.6.0` - Coordinate transformations
-- `geojson>=3.0.0` - GeoJSON handling
+Mở và chạy file `task-2.ipynb` để:
+- Phân tích dữ liệu
+- Tạo ship-only dataset
+- Huấn luyện mô hình
+- Dự đoán trên ảnh vệ tinh
 
 ---
 
-## Data Preprocessing
+## Giải thích File ships.geojson
 
-### Step 1: Analyze Dataset
+File `outputs/predictions/ships.geojson` chứa kết quả dự đoán tọa độ các tàu được phát hiện.
 
-First, analyze the SODA-A dataset to understand its structure:
-
-```bash
-python scripts/analyze_dataset.py \
-    --data_root /path/to/soda-a \
-    --output outputs/dataset_stats.json
-```
-
-This will output:
-- Total image and object counts
-- Class distribution statistics
-- Ship-specific statistics
-- Estimated image resolution
-- Bounding box size distributions
-
-### Step 2: Preprocess Data
-
-Convert SODA-A to YOLO-OBB format:
-
-```bash
-# Ship-only detection (recommended)
-python scripts/preprocess_data.py \
-    --source /path/to/soda-a \
-    --output data/processed \
-    --classes ship \
-    --train_ratio 0.8 \
-    --seed 42
-
-# Multi-class detection
-python scripts/preprocess_data.py \
-    --source /path/to/soda-a \
-    --output data/processed \
-    --classes ship airplane large-vehicle \
-    --train_ratio 0.8
-```
-
-### Preprocessing Parameters
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `--source` | Path to SODA-A dataset | Required |
-| `--output` | Output directory for processed data | Required |
-| `--classes` | Classes to include | ship |
-| `--train_ratio` | Training data ratio | 0.8 |
-| `--include_empty` | Include images without targets | False |
-| `--adapt_resolution` | Apply resolution scaling | False |
-| `--seed` | Random seed | 42 |
-
-### Output Structure
-
-```
-data/processed/
-    train/
-        images/
-        labels/
-    val/
-        images/
-        labels/
-    dataset.yaml
-```
-
----
-
-## Training
-
-### Basic Training
-
-```bash
-python scripts/train.py \
-    --config config/train_config.yaml \
-    --data data/processed/dataset.yaml \
-    --model small \
-    --device 0
-```
-
-### Training with Custom Configuration
-
-```bash
-python scripts/train.py \
-    --config config/train_config.yaml \
-    --data data/processed/dataset.yaml \
-    --model medium \
-    --device 0,1  # Multi-GPU
-```
-
-### Resume Training
-
-```bash
-python scripts/train.py \
-    --config config/train_config.yaml \
-    --data data/processed/dataset.yaml \
-    --resume \
-    --checkpoint outputs/models/ship_detection/weights/last.pt
-```
-
-### Model Variants
-
-| Variant | Model | Parameters | Speed | Accuracy |
-|---------|-------|------------|-------|----------|
-| nano | yolov8n-obb | 3.2M | Fastest | Lowest |
-| small | yolov8s-obb | 11.2M | Fast | Good |
-| medium | yolov8m-obb | 25.9M | Medium | Better |
-| large | yolov8l-obb | 43.7M | Slow | High |
-| xlarge | yolov8x-obb | 68.2M | Slowest | Highest |
-
-**Recommendation**: Start with `small` for initial experiments, use `medium` or `large` for production.
-
----
-
-## Evaluation
-
-### Run Evaluation
-
-```bash
-python scripts/evaluate.py \
-    --model outputs/models/ship_detection/weights/best.pt \
-    --data data/processed/dataset.yaml \
-    --split val \
-    --output outputs/evaluation_results.json
-```
-
-### Evaluation Metrics
-
-The evaluation provides:
-
-- **mAP@50**: Mean Average Precision at IoU=0.5
-- **mAP@50-95**: Mean AP averaged over IoU thresholds 0.5-0.95
-- **Precision**: True positives / (True positives + False positives)
-- **Recall**: True positives / (True positives + False negatives)
-- **F1-Score**: Harmonic mean of precision and recall
-
-### Inference Speed Benchmark
-
-```bash
-python scripts/evaluate.py \
-    --model outputs/models/ship_detection/weights/best.pt \
-    --data data/processed/dataset.yaml \
-    --benchmark \
-    --benchmark_image path/to/test_image.jpg
-```
-
----
-
-## Prediction
-
-### Predict on GeoTIFF (Satellite Imagery)
-
-For PlanetScope 3m resolution GeoTIFF images:
-
-```bash
-python scripts/predict.py \
-    --model outputs/models/ship_detection/weights/best.pt \
-    --input /path/to/satellite_image.tif \
-    --output predictions/ships.geojson \
-    --conf 0.25 \
-    --tile_size 640 \
-    --overlap 0.25
-```
-
-### Predict on Regular Images
-
-```bash
-python scripts/predict.py \
-    --model outputs/models/ship_detection/weights/best.pt \
-    --input /path/to/image.jpg \
-    --output predictions/result.jpg
-```
-
-### Prediction Parameters
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `--model` | Path to model weights | Required |
-| `--input` | Input image path | Required |
-| `--output` | Output path (GeoJSON or image) | Required |
-| `--conf` | Confidence threshold | 0.25 |
-| `--iou` | IoU threshold for NMS | 0.45 |
-| `--tile_size` | Sliding window tile size | 640 |
-| `--overlap` | Tile overlap ratio (0-1) | 0.25 |
-| `--device` | Inference device | auto |
-
-### Sliding Window Processing
-
-For large satellite images, the predictor uses a sliding window approach:
-
-1. Image is divided into overlapping tiles
-2. Each tile is processed independently
-3. Detections are merged using NMS
-4. Coordinates are transformed to geographic CRS
-
----
-
-## Configuration Parameters
-
-### Training Configuration (config/train_config.yaml)
-
-```yaml
-# Model Configuration
-model:
-  base: "yolov8s-obb"    # Base model architecture
-  num_classes: 1          # Number of detection classes
-  imgsz: 640              # Input image size (multiple of 32)
-
-# Training Hyperparameters
-training:
-  epochs: 100             # Number of training epochs
-  batch: 16               # Batch size (adjust for GPU memory)
-  optimizer: "AdamW"      # Optimizer: SGD, Adam, AdamW
-  lr0: 0.001              # Initial learning rate
-  lrf: 0.01               # Final LR factor (final_lr = lr0 * lrf)
-  momentum: 0.937         # SGD momentum / Adam beta1
-  weight_decay: 0.0005    # L2 regularization
-  warmup_epochs: 3        # Learning rate warmup
-  patience: 50            # Early stopping patience
-  amp: true               # Automatic Mixed Precision
-
-# Data Augmentation
-augmentation:
-  fliplr: 0.5             # Horizontal flip probability
-  flipud: 0.5             # Vertical flip probability
-  hsv_h: 0.015            # HSV-Hue augmentation
-  hsv_s: 0.7              # HSV-Saturation augmentation
-  hsv_v: 0.4              # HSV-Value augmentation
-  degrees: 180            # Random rotation (important for ships)
-  translate: 0.1          # Random translation
-  scale: 0.5              # Random scale
-  mosaic: 1.0             # Mosaic augmentation
-```
-
-### Parameter Descriptions
-
-To see detailed parameter descriptions:
-
-```bash
-python scripts/train.py --describe_params
-```
-
----
-
-## Output Formats
-
-### GeoJSON Output Structure
-
-The prediction pipeline outputs GeoJSON with the following structure:
+### Cấu trúc File
 
 ```json
 {
   "type": "FeatureCollection",
   "crs": {
     "type": "name",
-    "properties": {
-      "name": "EPSG:4326"
-    }
+    "properties": {"name": "EPSG:4326"}
   },
   "features": [
     {
       "type": "Feature",
       "id": "ship_0001",
-      "properties": {
-        "confidence": 0.9523,
-        "class": "ship"
-      },
       "geometry": {
         "type": "Polygon",
-        "coordinates": [
-          [
-            [longitude1, latitude1],
-            [longitude2, latitude2],
-            [longitude3, latitude3],
-            [longitude4, latitude4],
-            [longitude1, latitude1]
-          ]
-        ]
+        "coordinates": [[[lon1,lat1], [lon2,lat2], [lon3,lat3], [lon4,lat4], [lon1,lat1]]]
+      },
+      "properties": {
+        "confidence": 0.8817
       }
     }
   ]
 }
 ```
 
-### Output Fields
+### Giải thích các Trường
 
-| Field | Description |
-|-------|-------------|
-| `id` | Unique detection identifier |
-| `confidence` | Detection confidence score (0-1) |
-| `class` | Object class name |
-| `geometry` | OBB polygon in EPSG:4326 |
+| Trường | Mô tả |
+|--------|-------|
+| `type: FeatureCollection` | Định dạng chuẩn GeoJSON chứa nhiều features |
+| `crs` | Hệ tọa độ tham chiếu: EPSG:4326 (WGS84 - tọa độ GPS) |
+| `features` | Mảng chứa các tàu được phát hiện |
+| `id` | Mã định danh duy nhất của tàu (ship_XXXX) |
+| `geometry.type` | Polygon - hình đa giác 4 đỉnh (Oriented Bounding Box) |
+| `geometry.coordinates` | Mảng tọa độ 4 góc OBB theo [longitude, latitude] |
+| `properties.confidence` | Điểm tin cậy của dự đoán (0-1, càng cao càng chính xác) |
 
----
+### Đặc điểm
 
-## Resolution Adaptation
-
-### Understanding Resolution Differences
-
-| Data Source | Resolution | Notes |
-|-------------|------------|-------|
-| SODA-A | 0.5-1.0 m/pixel | Training data (aerial) |
-| PlanetScope | 3.0 m/pixel | Inference target |
-
-### Implications
-
-- Ships appear **smaller** in 3m imagery compared to training data
-- Small ships may be harder to detect
-- Model may need fine-tuning for optimal performance
-
-### Adaptation Strategies
-
-1. **Training augmentation**: Apply scale augmentation to simulate lower resolution
-2. **Tile size adjustment**: Use larger tiles to capture more context
-3. **Confidence tuning**: Adjust thresholds based on validation performance
-
-### Enable Resolution Adaptation
-
-```bash
-python scripts/preprocess_data.py \
-    --source /path/to/soda-a \
-    --output data/processed_adapted \
-    --adapt_resolution \
-    --source_resolution 0.8 \
-    --target_resolution 3.0
-```
+- **Số tàu phát hiện**: 91 tàu trong ảnh test
+- **Hệ tọa độ**: EPSG:4326 (WGS84) - tương thích với Google Maps, QGIS
+- **Định dạng OBB**: Polygon 4 đỉnh, có thể xoay theo hướng tàu
+- **Confidence**: Lọc các kết quả có confidence >= 0.25
 
 ---
 
-## Project Structure
+## Mô tả Bài toán
 
-```
-vega-star-task2/
-    README.md                 # This file
-    requirements.txt          # Python dependencies
-    config/
-        train_config.yaml     # Training configuration
-    src/
-        __init__.py
-        data/
-            __init__.py
-            dataset_analysis.py   # Dataset analysis module
-            preprocess.py         # Data preprocessing module
-        train/
-            __init__.py
-            trainer.py            # Training pipeline
-        evaluate/
-            __init__.py
-            evaluator.py          # Evaluation module
-        predict/
-            __init__.py
-            predictor.py          # Prediction pipeline
-    scripts/
-        analyze_dataset.py    # Dataset analysis script
-        preprocess_data.py    # Preprocessing script
-        train.py              # Training script
-        evaluate.py           # Evaluation script
-        predict.py            # Prediction script
-    outputs/
-        models/               # Trained model weights
-        predictions/          # Prediction results
-        logs/                 # Training logs
-```
+- Mô hình: YOLO11m-OBB (Oriented Bounding Box) train qua GPU T4 của google colab 
+- Framework: PyTorch + Ultralytics
+- Dataset huấn luyện: DIOR-R
+- Dữ liệu suy luận: Ảnh lấy từ bộ dữ liệu xview 2018
+
+### So sánh DIOR-R với PlanetScope 3m
+
+| Đặc điểm | DIOR-R | PlanetScope |
+|----------|--------|-------------|
+| GSD | 0.5m - 30m | 3m (cố định) |
+| Kích thước ảnh | 800x800 | Thay đổi (có thể rất lớn) |
+| Định dạng | JPG | GeoTIFF |
+| Geo-reference | Không | Có (CRS, transform) |
+
+DIOR-R có độ phân giải tương đương hoặc tốt hơn PlanetScope nên phù hợp để huấn luyện mô hình áp dụng cho ảnh PlanetScope.
 
 ---
 
-## Quick Start
+## Huấn luyện
 
-### Complete Pipeline Example
+### Mô hình
 
-```bash
-# 1. Analyze dataset
-python scripts/analyze_dataset.py \
-    --data_root /path/to/soda-a \
-    --output outputs/stats.json
+- **YOLO11n-OBB** (yolo11n-obb.pt): Mô hình được huấn luyện trên GPU của máy tính cá nhân
+- **YOLO11m-OBB** (yolo11m-obb.pt): Mô hình được huấn luyện trên GPU T4 của Colab - Model hiện tại đang dùng để test =>  [!Link notebook]('https://colab.research.google.com/drive/1fRqhC7hAi87HGzpbKi64ChUWmXt6aR73?usp=sharing')
 
-# 2. Preprocess data
-python scripts/preprocess_data.py \
-    --source /path/to/soda-a \
-    --output data/processed \
-    --classes ship
+### Tham số huấn luyện
 
-# 3. Train model
-python scripts/train.py \
-    --data data/processed/dataset.yaml \
-    --model small \
-    --device 0
-
-# 4. Evaluate model
-python scripts/evaluate.py \
-    --model outputs/models/ship_detection/weights/best.pt \
-    --data data/processed/dataset.yaml \
-    --output outputs/eval_results.json
-
-# 5. Run prediction
-python scripts/predict.py \
-    --model outputs/models/ship_detection/weights/best.pt \
-    --input satellite_image.tif \
-    --output predictions/ships.geojson
-```
+| Tham số | Giá trị | Mô tả |
+|---------|---------|-------|
+| epochs | 100 | Số vòng lặp toàn bộ dataset |
+| batch | 16 | Kích thước batch |
+| imgsz | 640 | Kích thước ảnh đầu vào |
+| optimizer | AdamW | Optimizer |
+| lr0 | 0.001 | Learning rate ban đầu |
+| lrf | 0.01 | Hệ số LR cuối (final_lr = lr0 * lrf) |
+| warmup_epochs | 3 | Số epoch khởi động |
+| patience | 30 | Early stopping |
+| degrees | 180 | Xoay ngẫu nhiên (quan trọng cho tàu hướng nhiều góc) |
+| mosaic | 1.0 | Mosaic augmentation |
+| amp | True | Mixed Precision Training |
 
 ---
 
-## Troubleshooting
+## Đánh giá trên tập validation (YOLO11n-obb)
+- Precision: 0.9274
+- Recall: 0.9480
+- mAP@50: 0.9755
+- mAP@50-95: 0.8000
 
-### Common Issues
-
-1. **CUDA out of memory**: Reduce batch size in config
-2. **No detections**: Lower confidence threshold
-3. **GeoTIFF read error**: Ensure rasterio is properly installed
-4. **Coordinate issues**: Verify input CRS matches expectations
-
-### GPU Memory Requirements
-
-| Model | Batch Size | GPU Memory |
-|-------|------------|------------|
-| nano | 32 | 8GB |
-| small | 16 | 12GB |
-| medium | 8 | 16GB |
-| large | 4 | 24GB |
+## Đánh giá trên tập test (YOLO11n-obb)
+- Precision: 0.9459
+- Recall: 0.9421
+- mAP@50: 0.9731
+- mAP@50-95: 0.8036
 
 ---
 
-## License
+## Quy trình Xử lý ảnh GeoTIFF
 
-This project is provided for educational and research purposes.
-
-## References
-
-- [SODA-A Dataset](https://www.kaggle.com/datasets/shubham6147/soda-a-small-object-detection-dataset-aerial)
-- [YOLOv8 Documentation](https://docs.ultralytics.com/)
-- [DOTA Dataset Format](https://captain-whu.github.io/DOTA/)
+1. Đọc ảnh GeoTIFF với thông tin geo-reference
+2. Chia ảnh thành các tile (sliding window)
+3. Dự đoán trên từng tile
+4. Chuyển đổi OBB từ pixel sang tọa độ địa lý
+5. Gộp kết quả và áp dụng NMS loại bỏ trùng lặp
+6. Xuất GeoJSON với CRS EPSG:4326

@@ -3,10 +3,13 @@ data/
 datasets/
 src/data/Annotations/
 src/data/*.zip
-
+runs/
+outputs/ship_dataset
+outputs/train
 # Compressed files
 *.zip
 *.tar
 *.tar.gz
 *.rar
 *.7z
+*.pt
