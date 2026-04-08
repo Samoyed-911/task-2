@@ -153,7 +153,8 @@ DIOR-R có độ phân giải tương đương hoặc tốt hơn PlanetScope nê
 ### Mô hình
 
 - **YOLO11n-OBB** (yolo11n-obb.pt): Mô hình được huấn luyện trên GPU của máy tính cá nhân
-- **YOLO11m-OBB** (yolo11m-obb.pt): Mô hình được huấn luyện trên GPU T4 của Colab - Model hiện tại đang dùng để test =>  [!Link notebook]('https://colab.research.google.com/drive/1fRqhC7hAi87HGzpbKi64ChUWmXt6aR73?usp=sharing')
+- - **YOLO11m-OBB** (`yolo11m-obb.pt`): Mô hình được huấn luyện trên GPU T4 của Google Colab và hiện đang được sử dụng để kiểm thử.  
+  👉 [Xem Notebook](https://colab.research.google.com/drive/1fRqhC7hAi87HGzpbKi64ChUWmXt6aR73?usp=sharing)
 
 ### Tham số huấn luyện
 
