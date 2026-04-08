@@ -1,14 +1,14 @@
-# Nhận diện Tàu từ Ảnh Vệ tinh sử dụng YOLO11m-OBB (Dataset: DIOR-R)
+# Nhận diện Tàu từ Ảnh Vệ tinh sử dụng YOLO11m-OBB (Dataset: DIOR-R) Link dataset: [DIOR-R](https://www.kaggle.com/datasets/redzapdos123/dior-r-dataset-yolov11-obb-format)
 
 ---
 
-## Bộ dữ liệu DIOR với object ship
-![Sample Predictions](outputs/predictions/sample_predictions.png)
+## Ảnh tàu từ bộ dữ liệu DIOR-R
+![Ship](outputs/predictions/image_from_dataset.png)
 
 ## Kết quả Dự đoán
 * Kết quả detect tàu từ file tif lấy từ bộ dữ liệu xview2018 (2555.tif)* [File Tiff](https://www.kaggle.com/datasets/hassanmojab/xview-dataset)
 
-* Kết qủa demo [Ảnh Demo](./outputs/predictions/predict_tiff.png)
+* Kết qủa demo cho ảnh Tif [Ảnh Demo](./outputs/predictions/predict_tiff.png)
 
 ---
 
